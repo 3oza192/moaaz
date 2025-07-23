@@ -1,25 +1,30 @@
 <!DOCTYPE html><html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>تسجيل الأدوية</title>
+  <title>نظام تسجيل الأدوية</title>
   <style>
-    body { font-family: Arial; direction: rtl; padding: 20px; background: #f4f4f4; }
-    h1 { color: #2c3e50; }
-    label { display: block; margin-top: 10px; }
-    input, textarea, select { width: 100%; padding: 5px; margin-top: 5px; }
-    button { margin-top: 15px; padding: 10px; background: #3498db; color: white; border: none; cursor: pointer; }
+    body { font-family: Arial; direction: rtl; padding: 20px; background: #eaf2f8; }
+    h1 { color: #2c3e50; text-align: center; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input, textarea, select { width: 100%; padding: 8px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc; }
+    button { margin-top: 15px; padding: 10px 15px; background: #3498db; color: white; border: none; cursor: pointer; border-radius: 5px; }
+    button:hover { background: #2980b9; }
     table { width: 100%; margin-top: 20px; border-collapse: collapse; background: white; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
     th { background: #2980b9; color: white; }
-    #mainContent { display: none; }
+    #adminPanel { display: none; margin-top: 20px; }
+    .hidden { display: none; }
+    #searchBox { margin-top: 20px; padding: 10px; width: 100%; border-radius: 5px; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
-  <h1>نظام تسجيل الأدوية</h1>  <div id="auth">
-    <label>أدخل كلمة السر:</label>
+  <h1>نظام تسجيل الأدوية</h1><label>ابحث عن دواء:</label> <input type="text" id="searchBox" onkeyup="searchTable()" placeholder="اكتب اسم الدواء أو جزء منه">
+
+  <div id="adminLogin">
+    <label>أدخل كلمة السر للتعديل:</label>
     <input type="password" id="passwordInput">
     <button onclick="checkPassword()">دخول</button>
-  </div>  <div id="mainContent">
+  </div>  <div id="adminPanel">
     <label>اسم الدواء:</label>
     <input type="text" id="name"><label>دواعي الاستعمال:</label>
 <input type="text" id="uses">
@@ -43,74 +48,69 @@
 <textarea id="notes"></textarea>
 
 <button onclick="addDrug()">أضف الدواء</button>
-<button onclick="clearData()">🗑️ مسح كل البيانات</button>
+<button onclick="clearAll()">مسح الكل</button>
 
-<table>
-  <thead>
-    <tr>
-      <th>اسم الدواء</th>
-      <th>دواعي الاستعمال</th>
-      <th>الجرعة</th>
-      <th>مواعيد الجرعة</th>
-      <th>البدائل</th>
-      <th>الآثار الجانبية</th>
-      <th>طريقة الاستخدام</th>
-      <th>تفاصيل</th>
-    </tr>
-  </thead>
-  <tbody id="drugTable"></tbody>
-</table>
-
-  </div>  <script>
-    const correctPassword = "297010"; // غيرها لكلمة السر اللي تعجبك
+  </div>  <table>
+    <thead>
+      <tr>
+        <th>اسم الدواء</th>
+        <th>دواعي الاستعمال</th>
+        <th>الجرعة</th>
+        <th>مواعيد الجرعة</th>
+        <th>البدائل</th>
+        <th>الآثار الجانبية</th>
+        <th>طريقة الاستخدام</th>
+        <th>تفاصيل</th>
+        <th class="admin-only hidden">حذف</th>
+      </tr>
+    </thead>
+    <tbody id="drugTable"></tbody>
+  </table>  <script>
+    const correctPassword = "297010";
+    let isAdmin = false;
 
     function checkPassword() {
       const input = document.getElementById('passwordInput').value;
       if (input === correctPassword) {
-        document.getElementById('auth').style.display = 'none';
-        document.getElementById('mainContent').style.display = 'block';
-        loadData();
+        isAdmin = true;
+        document.getElementById('adminLogin').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        const adminButtons = document.getElementsByClassName('admin-only');
+        for (let btn of adminButtons) btn.classList.remove('hidden');
       } else {
         alert("كلمة السر غير صحيحة");
       }
     }
 
     function addDrug() {
-      const drug = {
-        name: document.getElementById('name').value,
-        uses: document.getElementById('uses').value,
-        dose: document.getElementById('dose').value,
-        timing: document.getElementById('timing').value,
-        alternatives: document.getElementById('alternatives').value,
-        sideEffects: document.getElementById('sideEffects').value,
-        usage: document.getElementById('usage').value,
-        notes: document.getElementById('notes').value
-      };
+      const name = document.getElementById('name').value;
+      const uses = document.getElementById('uses').value;
+      const dose = document.getElementById('dose').value;
+      const timing = document.getElementById('timing').value;
+      const alternatives = document.getElementById('alternatives').value;
+      const sideEffects = document.getElementById('sideEffects').value;
+      const usage = document.getElementById('usage').value;
+      const notes = document.getElementById('notes').value;
 
-      if (!drug.name || !drug.uses) {
+      if (!name || !uses) {
         alert("من فضلك املأ اسم الدواء ودواعي الاستعمال على الأقل");
         return;
       }
 
       const table = document.getElementById('drugTable');
       const row = table.insertRow();
-
       row.innerHTML = `
-        <td>${drug.name}</td>
-        <td>${drug.uses}</td>
-        <td>${drug.dose}</td>
-        <td>${drug.timing}</td>
-        <td>${drug.alternatives}</td>
-        <td>${drug.sideEffects}</td>
-        <td>${drug.usage}</td>
-        <td>${drug.notes}</td>
+        <td>${name}</td>
+        <td>${uses}</td>
+        <td>${dose}</td>
+        <td>${timing}</td>
+        <td>${alternatives}</td>
+        <td>${sideEffects}</td>
+        <td>${usage}</td>
+        <td>${notes}</td>
+        <td class="admin-only hidden"><button onclick="deleteRow(this)">حذف</button></td>
       `;
 
-      saveDrug(drug);
-      clearForm();
-    }
-
-    function clearForm() {
       document.getElementById('name').value = '';
       document.getElementById('uses').value = '';
       document.getElementById('dose').value = '';
@@ -121,34 +121,30 @@
       document.getElementById('notes').value = '';
     }
 
-    function saveDrug(drug) {
-      let drugs = JSON.parse(localStorage.getItem('drugs')) || [];
-      drugs.push(drug);
-      localStorage.setItem('drugs', JSON.stringify(drugs));
+    function deleteRow(btn) {
+      const row = btn.parentNode.parentNode;
+      row.parentNode.removeChild(row);
     }
 
-    function loadData() {
-      let drugs = JSON.parse(localStorage.getItem('drugs')) || [];
-      const table = document.getElementById('drugTable');
-      drugs.forEach(drug => {
-        const row = table.insertRow();
-        row.innerHTML = `
-          <td>${drug.name}</td>
-          <td>${drug.uses}</td>
-          <td>${drug.dose}</td>
-          <td>${drug.timing}</td>
-          <td>${drug.alternatives}</td>
-          <td>${drug.sideEffects}</td>
-          <td>${drug.usage}</td>
-          <td>${drug.notes}</td>
-        `;
-      });
-    }
-
-    function clearData() {
-      if (confirm("هل أنت متأكد أنك تريد حذف كل البيانات؟")) {
-        localStorage.removeItem('drugs');
+    function clearAll() {
+      if (confirm("هل أنت متأكد من مسح جميع البيانات؟")) {
         document.getElementById('drugTable').innerHTML = '';
+      }
+    }
+
+    function searchTable() {
+      const filter = document.getElementById('searchBox').value.toUpperCase();
+      const rows = document.getElementById('drugTable').getElementsByTagName('tr');
+      for (let i = 0; i < rows.length; i++) {
+        const cells = rows[i].getElementsByTagName('td');
+        let match = false;
+        for (let j = 0; j < cells.length - 1; j++) {
+          if (cells[j].innerText.toUpperCase().indexOf(filter) > -1) {
+            match = true;
+            break;
+          }
+        }
+        rows[i].style.display = match ? '' : 'none';
       }
     }
   </script></body>
